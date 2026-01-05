@@ -2,6 +2,16 @@
 
 This repository contains custom slash commands and agents for Claude Code.
 
+## Setup
+
+Symlink the commands and agents directories to make them available globally:
+
+```bash
+mkdir -p ~/.claude
+ln -sf "$(pwd)/commands" ~/.claude/commands
+ln -sf "$(pwd)/agents" ~/.claude/agents
+```
+
 ## Structure
 
 ```
