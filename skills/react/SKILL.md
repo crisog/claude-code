@@ -5,6 +5,8 @@ description: React best practices for components, state, effects, and project st
 
 # React Best Practices
 
+> Based on [bulletproof-react](https://github.com/alan2207/bulletproof-react) by Alan Alickovic
+
 ## Project Structure
 
 Organize by feature, not by file type:
@@ -30,6 +32,28 @@ src/
 - No cross-feature imports — compose at app level
 - Colocate code with where it's used
 - Avoid barrel files (breaks tree-shaking)
+- Use **kebab-case** for all file and folder names
+- Use **absolute imports** (`@/`) instead of relative paths
+
+```tsx
+// BAD: Relative imports
+import { Button } from '../../../components/ui/button';
+
+// GOOD: Absolute imports
+import { Button } from '@/components/ui/button';
+```
+
+Configure in `tsconfig.json`:
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+```
 
 ---
 
@@ -363,4 +387,135 @@ export const getUsersQueryOptions = () => ({
 });
 
 export const useUsers = () => useQuery(getUsersQueryOptions());
+```
+
+---
+
+## Error Handling
+
+### API Errors — Use Interceptors
+
+```tsx
+// lib/api-client.ts
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const message = error.response?.data?.message || 'An error occurred';
+
+    // Show toast notification
+    toast.error(message);
+
+    // Handle 401 — logout user
+    if (error.response?.status === 401) {
+      logout();
+    }
+
+    return Promise.reject(error);
+  }
+);
+```
+
+### Error Boundaries — Use Multiple, Not One
+
+```tsx
+// BAD: Single app-wide error boundary
+<ErrorBoundary>
+  <App /> {/* One error crashes everything */}
+</ErrorBoundary>
+
+// GOOD: Granular error boundaries
+<Layout>
+  <ErrorBoundary fallback={<SidebarError />}>
+    <Sidebar />
+  </ErrorBoundary>
+  <ErrorBoundary fallback={<ContentError />}>
+    <MainContent />
+  </ErrorBoundary>
+</Layout>
+```
+
+Place error boundaries around:
+- Route components
+- Independent features/widgets
+- Third-party components
+- Anything that can fail independently
+
+---
+
+## Security
+
+### XSS Prevention — Sanitize User Content
+
+```tsx
+// BAD: Dangerous innerHTML
+function Comment({ content }) {
+  return <div dangerouslySetInnerHTML={{ __html: content }} />;
+}
+
+// GOOD: Sanitize with DOMPurify
+import DOMPurify from 'dompurify';
+
+function Comment({ content }) {
+  const sanitized = DOMPurify.sanitize(content);
+  return <div dangerouslySetInnerHTML={{ __html: sanitized }} />;
+}
+
+// BEST: Use a markdown renderer with built-in sanitization
+import ReactMarkdown from 'react-markdown';
+
+function Comment({ content }) {
+  return <ReactMarkdown>{content}</ReactMarkdown>;
+}
+```
+
+### Auth Token Storage
+
+```tsx
+// BAD: localStorage (vulnerable to XSS)
+localStorage.setItem('token', token);
+
+// GOOD: HttpOnly cookies (set by server, inaccessible to JS)
+// Token is automatically sent with requests via credentials: 'include'
+```
+
+### Authorization — RBAC Pattern
+
+```tsx
+// Authorization wrapper component
+function RBAC({ allowedRoles, children }) {
+  const { user } = useAuth();
+
+  if (!allowedRoles.includes(user.role)) {
+    return null;
+  }
+
+  return children;
+}
+
+// Usage
+<RBAC allowedRoles={['ADMIN']}>
+  <DeleteUserButton />
+</RBAC>
+```
+
+### Authorization — PBAC (Permission-Based)
+
+```tsx
+// For granular permissions (e.g., only owner can delete)
+function CanDelete({ resource, children }) {
+  const { user } = useAuth();
+
+  const canDelete =
+    user.role === 'ADMIN' ||
+    resource.authorId === user.id;
+
+  if (!canDelete) return null;
+
+  return children;
+}
+
+// Usage
+<CanDelete resource={comment}>
+  <DeleteButton onClick={() => deleteComment(comment.id)} />
+</CanDelete>
 ```
