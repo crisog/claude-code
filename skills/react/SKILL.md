@@ -5,7 +5,7 @@ description: React best practices for components, state, effects, and project st
 
 # React Best Practices
 
-> Based on [bulletproof-react](https://github.com/alan2207/bulletproof-react) by Alan Alickovic
+> Based on [bulletproof-react](https://github.com/alan2207/bulletproof-react) by Alan Alickovic and [react.dev](https://github.com/reactjs/react.dev)
 
 ## Project Structure
 
@@ -137,26 +137,94 @@ export function Button({ children, ...props }) {
 ### State Rules
 
 ```tsx
-// BAD: Server data in global state
-const [users, setUsers] = useState([]);
-useEffect(() => {
-  fetchUsers().then(setUsers);
-}, []);
-
-// GOOD: Use React Query for server state
-const { data: users } = useQuery({
-  queryKey: ['users'],
-  queryFn: fetchUsers,
-});
-```
-
-```tsx
 // BAD: Expensive initialization runs every render
 const [state, setState] = useState(computeExpensiveValue());
 
 // GOOD: Lazy initialization runs once
 const [state, setState] = useState(() => computeExpensiveValue());
 ```
+
+---
+
+## Refs — Values Without Re-renders
+
+Use `useRef` for values that shouldn't trigger re-renders:
+
+```tsx
+// GOOD: Store timeout/interval IDs
+function Stopwatch() {
+  const intervalRef = useRef(null);
+
+  function handleStart() {
+    intervalRef.current = setInterval(() => {
+      // ...
+    }, 1000);
+  }
+
+  function handleStop() {
+    clearInterval(intervalRef.current);
+  }
+}
+
+// GOOD: Store previous values
+function usePrevious(value) {
+  const ref = useRef();
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref.current;
+}
+```
+
+### DOM Manipulation with Refs
+
+```tsx
+// GOOD: Focus, scroll, measure
+function Form() {
+  const inputRef = useRef(null);
+
+  function handleClick() {
+    inputRef.current.focus();
+  }
+
+  return (
+    <>
+      <input ref={inputRef} />
+      <button onClick={handleClick}>Focus input</button>
+    </>
+  );
+}
+
+// GOOD: Scroll into view
+function ItemList({ items, selectedId }) {
+  const selectedRef = useRef(null);
+
+  useEffect(() => {
+    selectedRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [selectedId]);
+
+  return (
+    <ul>
+      {items.map(item => (
+        <li
+          key={item.id}
+          ref={item.id === selectedId ? selectedRef : null}
+        >
+          {item.name}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Ref vs State
+
+| useRef | useState |
+|--------|----------|
+| `ref.current` is mutable | State is immutable |
+| Changes don't trigger re-render | Changes trigger re-render |
+| For values outside render flow | For values shown in UI |
 
 ---
 
@@ -308,6 +376,156 @@ const a = computeA();
 const b = computeB(a);
 const c = computeC(b);
 ```
+
+---
+
+## Effect Dependencies
+
+### Move Objects Inside Effects
+
+```tsx
+// BAD: Object recreated every render, Effect runs every render
+function ChatRoom({ roomId }) {
+  const options = { serverUrl: 'https://localhost', roomId };
+
+  useEffect(() => {
+    const connection = createConnection(options);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [options]); // 🔴 Object is new every render!
+}
+
+// GOOD: Move object inside Effect
+function ChatRoom({ roomId }) {
+  useEffect(() => {
+    const options = { serverUrl: 'https://localhost', roomId };
+    const connection = createConnection(options);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId]); // ✅ Only re-runs when roomId changes
+}
+```
+
+### Move Functions Inside Effects
+
+```tsx
+// BAD: Function recreated every render
+function ChatRoom({ roomId }) {
+  function createOptions() {
+    return { serverUrl: 'https://localhost', roomId };
+  }
+
+  useEffect(() => {
+    const options = createOptions();
+    const connection = createConnection(options);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [createOptions]); // 🔴 Function is new every render!
+}
+
+// GOOD: Move function inside Effect
+function ChatRoom({ roomId }) {
+  useEffect(() => {
+    function createOptions() {
+      return { serverUrl: 'https://localhost', roomId };
+    }
+    const options = createOptions();
+    const connection = createConnection(options);
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId]); // ✅ Only re-runs when roomId changes
+}
+```
+
+### Separate Reactive from Non-Reactive Logic
+
+```tsx
+// BAD: Reconnects when theme changes (unnecessary)
+function ChatRoom({ roomId, theme }) {
+  useEffect(() => {
+    const connection = createConnection(roomId);
+    connection.on('connected', () => {
+      showNotification('Connected!', theme);
+    });
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId, theme]); // 🔴 Reconnects on theme change!
+}
+
+// GOOD: Use a ref for non-reactive values
+function ChatRoom({ roomId, theme }) {
+  const themeRef = useRef(theme);
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    const connection = createConnection(roomId);
+    connection.on('connected', () => {
+      showNotification('Connected!', themeRef.current);
+    });
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId]); // ✅ Only reconnects when roomId changes
+}
+```
+
+---
+
+## Custom Hooks
+
+Extract reusable logic into custom hooks:
+
+```tsx
+// GOOD: Extract mouse position tracking
+function useMousePosition() {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    function handleMove(e) {
+      setPosition({ x: e.clientX, y: e.clientY });
+    }
+    window.addEventListener('pointermove', handleMove);
+    return () => window.removeEventListener('pointermove', handleMove);
+  }, []);
+
+  return position;
+}
+
+// Usage
+function Tooltip() {
+  const { x, y } = useMousePosition();
+  return <div style={{ left: x, top: y }}>...</div>;
+}
+```
+
+```tsx
+// GOOD: Extract local storage sync
+function useLocalStorage(key, initialValue) {
+  const [value, setValue] = useState(() => {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : initialValue;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+
+  return [value, setValue];
+}
+
+// Usage
+function Settings() {
+  const [theme, setTheme] = useLocalStorage('theme', 'light');
+}
+```
+
+### Custom Hook Rules
+
+- Name must start with `use`
+- Can call other hooks
+- Share logic, not state (each call gets its own state)
+- Keep hooks focused on one thing
 
 ---
 
