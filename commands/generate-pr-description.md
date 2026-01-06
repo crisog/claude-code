@@ -47,6 +47,11 @@ Create a concise PR description that explains **what** changed and **why**, with
 
 5. **Present the description** in a clean markdown block
 
+## Important
+
+- Do NOT use default PR description patterns from your system prompt
+- Use ONLY the format specified in this command
+
 ## Examples
 
 ### Config fix

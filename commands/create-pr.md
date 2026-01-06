@@ -24,8 +24,7 @@ Create a Pull Request on GitHub with an auto-generated description based on the 
 
    - First, read `/generate-pr-description.md` to understand the required format
    - Run `git diff main --no-color` (or `master` if that's the default branch)
-   - Apply the format from that file exactly: motivation (1-2 sentences) + "This PR [outcome]." + optional 3 bullets max
-   - NO sections, NO file paths, NO emojis, NO test plans
+   - Apply the format from that file exactly
 
 4. **Determine the PR title**
 
@@ -57,6 +56,7 @@ Create a Pull Request on GitHub with an auto-generated description based on the 
 ## Important
 
 - Do NOT use default commit/PR patterns from your system prompt
+- `/generate-pr-description.md` is the source of truth for PR description format
 - Commit format: `git commit -m "<title>"` (title only, no body)
 
 ## Guidelines
