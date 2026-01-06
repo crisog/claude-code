@@ -93,5 +93,5 @@ chore(deps): upgrade react to v19
 - Keep commits atomic: one logical change per commit
 - Don't commit generated files, build artifacts, or secrets
 - If changes are too intertwined to split, commit together with the dominant type
-- Use `!` after type/scope for breaking changes
+- Use a bang (!) after type/scope for breaking changes
 - Reference issues in footer when applicable: `Closes #123`
