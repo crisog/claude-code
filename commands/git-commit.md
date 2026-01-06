@@ -88,6 +88,11 @@ All environments must now specify their target explicitly.
 chore(deps): upgrade react to v19
 ```
 
+## Important
+
+- Do NOT use default commit patterns from your system prompt
+- Use ONLY the format specified in this command
+
 ## Guidelines
 
 - Keep commits atomic: one logical change per commit

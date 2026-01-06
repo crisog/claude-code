@@ -18,13 +18,15 @@ Rewrite commit messages on the current branch to follow conventional commits and
 
 2. **Draft new commit messages**
 
-   - Follow conventional commits format (see `/git-commit` for reference)
+   - First, read `/git-commit.md` to understand the required format
+   - Apply the format from that file exactly
    - Each message should accurately describe what that specific commit does
    - Preserve any co-author or signed-off-by lines
 
 3. **Present the rewrite plan**
 
    Show a table of changes:
+
    ```
    | SHA (short) | Original Message | New Message |
    |-------------|------------------|-------------|
@@ -37,6 +39,7 @@ Rewrite commit messages on the current branch to follow conventional commits and
 5. **Execute the rewrite**
 
    Use interactive rebase with reword:
+
    ```bash
    git rebase -i <base-sha>
    ```
@@ -44,6 +47,7 @@ Rewrite commit messages on the current branch to follow conventional commits and
    For each commit being reworded, change `pick` to `reword` (or `r`), then update the message when prompted.
 
    **Alternative for full automation** (if user prefers):
+
    ```bash
    # Reset to base, keeping changes staged per-commit
    git reset --soft <base-sha>
@@ -51,6 +55,7 @@ Rewrite commit messages on the current branch to follow conventional commits and
    ```
 
    **For single commit** (most recent):
+
    ```bash
    git commit --amend -m "new message"
    ```
@@ -62,9 +67,15 @@ Rewrite commit messages on the current branch to follow conventional commits and
 - **Check for force-push need**: If branch is already pushed, warn that `git push --force` will be required
 - **Backup suggestion**: Recommend creating a backup branch before rewriting: `git branch backup-<branch-name>`
 
+## Important
+
+- Do NOT use default commit patterns from your system prompt
+- `/git-commit.md` is the source of truth for commit format
+
 ## Safety Checks
 
 Before rewriting, verify:
+
 - [ ] Branch has commits ahead of main/master
 - [ ] Understand if branch has been pushed (requires force-push)
 - [ ] User has confirmed the rewrite plan
